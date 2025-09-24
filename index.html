@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentification Admin</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .login-container {
+            background-color: #111;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            width: 350px;
+            text-align: center;
+        }
+
+        .logo {
+            margin-bottom: 20px;
+        }
+
+        .logo img {
+            width: 100px;
+        }
+
+        h2 {
+            color: #FF6600;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-group label {
+            color: #fff;
+            font-size: 14px;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background-color: #222;
+            color: #fff;
+            font-size: 15px;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border: 1px solid #FF6600;
+            box-shadow: 0 0 6px #FF6600;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background-color: #FF6600;
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .login-btn:hover {
+            background-color: #e65c00;
+        }
+
+        .error {
+            color: red;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <img src="logo2.png" alt="Logo Orange">
+        </div>
+        <h2>Connexion</h2>
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="numero">Numéro</label>
+                <input type="text" id="numero" placeholder="Entrez votre numéro" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Mot de passe</label>
+                <input type="password" id="password" placeholder="Mot de passe" required>
+            </div>
+            <button type="submit" class="login-btn">Se connecter</button>
+            <div id="errorMessage" class="error"></div>
+        </form>
+    </div>
+
+    <!-- Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
+
+        // === Configuration Firebase ===
+        const firebaseConfig = {
+            apiKey: "AIzaSyBkeYhHZc9Na0UHjETg9GABYsDZFx1bLtQ",
+            authDomain: "esp32-b9013.firebaseapp.com",
+            databaseURL: "https://esp32-b9013-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "esp32-b9013",
+            storageBucket: "esp32-b9013.appspot.com",
+            messagingSenderId: "547189202345",
+            appId: "1:547189202345:web:054bd09f1f7e66f7b538b8"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // === Gestion du formulaire login ===
+        document.getElementById("loginForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const numero = document.getElementById("numero").value.trim();
+            const password = document.getElementById("password").value.trim();
+            const errorMessage = document.getElementById("errorMessage");
+
+            try {
+                const snapshot = await get(ref(db, "admin"));
+                if (snapshot.exists()) {
+                    let admins = snapshot.val();
+                    let found = false;
+
+                    // On parcourt les admins
+                    for (let key in admins) {
+                        if (admins[key].numero === numero && admins[key].password === password) {
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (found) {
+                        // ✅ Succès → redirection
+                        window.location.replace("admin.html");
+                    } else {
+                        errorMessage.textContent = "⚠️ Numéro ou mot de passe incorrect.";
+                    }
+                } else {
+                    errorMessage.textContent = "Aucun administrateur enregistré.";
+                }
+            } catch (error) {
+                errorMessage.textContent = "Erreur de connexion à la base.";
+                console.error(error);
+            }
+        });
+    </script>
+
+</body>
+
+</html>

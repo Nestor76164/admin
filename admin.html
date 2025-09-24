@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panneau de Gestion - Agents</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: #000;
+            color: #fff;
+        }
+
+        header {
+            background: #111;
+            padding: 15px 20px;
+            text-align: center;
+            border-bottom: 2px solid #FF6600;
+        }
+
+        header h1 {
+            margin: 0;
+            color: #FF6600;
+            font-size: 24px;
+        }
+
+        .container {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .card {
+            background: #111;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+            overflow-x: auto;
+            /* ✅ permet au tableau de défiler si trop large */
+        }
+
+        h2 {
+            color: #FF6600;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background: #222;
+            color: #fff;
+        }
+
+        input:focus {
+            border: 1px solid #FF6600;
+            outline: none;
+            box-shadow: 0 0 6px #FF6600;
+        }
+
+        button {
+            margin-top: 15px;
+            padding: 10px 16px;
+            background: #FF6600;
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #e65c00;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            min-width: 400px;
+            /* ✅ évite que le tableau s’écrase trop sur mobile */
+        }
+
+        th,
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #333;
+            text-align: left;
+        }
+
+        th {
+            color: #FF6600;
+        }
+
+        .action-btn {
+            background: #FF6600;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+
+        .empty {
+            color: #bbb;
+            font-style: italic;
+            padding: 10px 0;
+        }
+
+        #status {
+            margin-top: 10px;
+            color: #fff;
+        }
+
+        /* ✅ Responsivité */
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                /* une seule colonne sur mobile */
+            }
+
+            header h1 {
+                font-size: 20px;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+    <header style="
+    display:flex; 
+    justify-content:space-between; 
+    align-items:center; 
+    padding:10px 20px; 
+    background:#333; 
+    color:white;">
+
+        <h1 style="margin:0; font-size:18px;">Panneau de Gestion - Agents</h1>
+
+        <!-- ✅ Bouton de déconnexion -->
+        <button id="logoutBtn" style="
+        padding:8px 14px; 
+        background:#FF6600; 
+        border:none; 
+        border-radius:6px; 
+        color:#fff; 
+        cursor:pointer; 
+        font-size:14px;">
+            Déconnexion
+        </button>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <h2>Ajouter un Agent</h2>
+            <label for="nom">Nom</label>
+            <input type="text" id="nom" placeholder="Entrez le nom">
+            <label for="numero">Numéro</label>
+            <input type="text" id="numero" placeholder="Entrez le numéro">
+            <label for="identifiant">Identifiant</label>
+            <input type="text" id="identifiant" placeholder="Entrez l'identifiant">
+            <button id="addBtn" type="button">Ajouter</button>
+            <div id="status"></div>
+        </div>
+
+        <div class="card">
+            <h2>Agents</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Numéro</th>
+                        <th>Identifiant</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="agentsTable"></tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>Agents Interdits</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Numéro</th>
+                        <th>Identifiant</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="interditsTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
+        import { getDatabase, ref, set, get, remove, onValue } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBkeYhHZc9Na0UHjETg9GABYsDZFx1bLtQ",
+            authDomain: "esp32-b9013.firebaseapp.com",
+            databaseURL: "https://esp32-b9013-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "esp32-b9013",
+            storageBucket: "esp32-b9013.appspot.com",
+            messagingSenderId: "547189202345",
+            appId: "1:547189202345:web:054bd09f1f7e66f7b538b8"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        function sanitizeKey(s) {
+            return s.trim().replace(/[.$#[\]/]/g, "_") || ("agent_" + Math.random().toString(36).substr(2, 8));
+        }
+
+        // ✅ Redirection bouton déconnexion
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+            window.location.replace("Index.html");
+        });
+
+
+        async function ajouterAgent() {
+            const nom = document.getElementById("nom").value.trim();
+            const numero = document.getElementById("numero").value.trim();
+            const identifiant = document.getElementById("identifiant").value.trim();
+            const status = document.getElementById("status");
+
+            if (!nom || !numero || !identifiant) {
+                status.textContent = "Veuillez remplir tous les champs.";
+                return;
+            }
+
+            const key = sanitizeKey(nom);
+            try {
+                await set(ref(db, "agents/" + key), {
+                    numero,
+                    identifiant,
+                    sessionActive: ""
+                });
+                document.getElementById("nom").value = "";
+                document.getElementById("numero").value = "";
+                document.getElementById("identifiant").value = "";
+                status.textContent = "Agent ajouté avec succès.";
+                setTimeout(() => status.textContent = "", 2500);
+            } catch (err) {
+                console.error(err);
+                status.textContent = "Erreur lors de l'ajout. Vérifie la connexion.";
+            }
+        }
+
+        // Attacher l'écouteur (CORRECT pour les modules)
+        document.getElementById("addBtn").addEventListener("click", ajouterAgent);
+
+        // Chargement / affichage agents
+        function chargerAgents() {
+            const agentsRef = ref(db, "agents");
+            onValue(agentsRef, (snapshot) => {
+                const tbody = document.getElementById("agentsTable");
+                tbody.innerHTML = "";
+                if (!snapshot.exists()) {
+                    tbody.innerHTML = `<tr class="empty"><td colspan="4">Aucun agent</td></tr>`;
+                    return;
+                }
+                snapshot.forEach((childSnap) => {
+                    const data = childSnap.val();
+                    const key = childSnap.key;
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+            <td>${key}</td>
+            <td>${data.numero || ""}</td>
+            <td>${data.identifiant || ""}</td>
+            <td><button class="action-btn" data-key="${key}">Interdire</button></td>
+          `;
+                    tbody.appendChild(tr);
+                });
+
+                // délégation d'événement pour les boutons Interdire
+                tbody.querySelectorAll(".action-btn").forEach(btn => {
+                    btn.addEventListener("click", () => banirAgent(btn.dataset.key));
+                });
+            });
+        }
+
+        function chargerInterdits() {
+            const interditsRef = ref(db, "agents_interdits");
+            onValue(interditsRef, (snapshot) => {
+                const tbody = document.getElementById("interditsTable");
+                tbody.innerHTML = "";
+                if (!snapshot.exists()) {
+                    tbody.innerHTML = `<tr class="empty"><td colspan="4">Aucun agent interdit</td></tr>`;
+                    return;
+                }
+                snapshot.forEach((childSnap) => {
+                    const data = childSnap.val();
+                    const key = childSnap.key;
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+            <td>${key}</td>
+            <td>${data.numero || ""}</td>
+            <td>${data.identifiant || ""}</td>
+            <td><button class="action-btn" data-key="${key}">Réhabiliter</button></td>
+          `;
+                    tbody.appendChild(tr);
+                });
+
+                tbody.querySelectorAll(".action-btn").forEach(btn => {
+                    btn.addEventListener("click", () => rehabiliterAgent(btn.dataset.key));
+                });
+            });
+        }
+
+        async function banirAgent(nom) {
+            const snapshot = await get(ref(db, "agents/" + nom));
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                await set(ref(db, "agents_interdits/" + nom), { ...data, raison: "Interdit par admin" });
+                await remove(ref(db, "agents/" + nom));
+            }
+        }
+
+        async function rehabiliterAgent(nom) {
+            const snapshot = await get(ref(db, "agents_interdits/" + nom));
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                await set(ref(db, "agents/" + nom), data);
+                await remove(ref(db, "agents_interdits/" + nom));
+            }
+        }
+
+        // Exposer ces deux fonctions si tu veux les appeler depuis la console
+        window.banirAgent = banirAgent;
+        window.rehabiliterAgent = rehabiliterAgent;
+
+        // démarrage
+        chargerAgents();
+        chargerInterdits();
+    </script>
+</body>
+
+</html>
