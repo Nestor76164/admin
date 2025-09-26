@@ -83,6 +83,7 @@
             font-size: 14px;
         }
 
+
         button:hover {
             background: #e65c00;
         }
@@ -126,6 +127,17 @@
             margin-top: 10px;
             color: #fff;
         }
+
+        .delete-btn {
+            background: #e74c3c;
+            /* rouge */
+        }
+
+        .delete-btn:hover {
+            background: #d92a16;
+            /* rouge foncé au survol */
+        }
+
 
         /* ✅ Responsivité */
         @media (max-width: 768px) {
@@ -284,17 +296,23 @@
                     const key = childSnap.key;
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
-            <td>${key}</td>
-            <td>${data.numero || ""}</td>
-            <td>${data.identifiant || ""}</td>
-            <td><button class="action-btn" data-key="${key}">Interdire</button></td>
-          `;
+                <td>${key}</td>
+                <td>${data.numero || ""}</td>
+                <td>${data.identifiant || ""}</td>
+                <td>
+                    <button class="action-btn" data-key="${key}">Interdire</button>
+                    <button class="action-btn delete-btn" data-key="${key}">Supprimer</button>
+                </td>
+            `;
                     tbody.appendChild(tr);
                 });
 
-                // délégation d'événement pour les boutons Interdire
                 tbody.querySelectorAll(".action-btn").forEach(btn => {
-                    btn.addEventListener("click", () => banirAgent(btn.dataset.key));
+                    if (btn.textContent === "Interdire") {
+                        btn.addEventListener("click", () => banirAgent(btn.dataset.key));
+                    } else if (btn.textContent === "Supprimer") {
+                        btn.addEventListener("click", () => supprimerAgent(btn.dataset.key));
+                    }
                 });
             });
         }
@@ -313,16 +331,23 @@
                     const key = childSnap.key;
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
-            <td>${key}</td>
-            <td>${data.numero || ""}</td>
-            <td>${data.identifiant || ""}</td>
-            <td><button class="action-btn" data-key="${key}">Réhabiliter</button></td>
-          `;
+                <td>${key}</td>
+                <td>${data.numero || ""}</td>
+                <td>${data.identifiant || ""}</td>
+                <td>
+                    <button class="action-btn" data-key="${key}">Réhabiliter</button>
+                    <button class="action-btn delete-btn" data-key="${key}">Supprimer</button>
+                </td>
+            `;
                     tbody.appendChild(tr);
                 });
 
                 tbody.querySelectorAll(".action-btn").forEach(btn => {
-                    btn.addEventListener("click", () => rehabiliterAgent(btn.dataset.key));
+                    if (btn.textContent === "Réhabiliter") {
+                        btn.addEventListener("click", () => rehabiliterAgent(btn.dataset.key));
+                    } else if (btn.textContent === "Supprimer") {
+                        btn.addEventListener("click", () => supprimerInterdit(btn.dataset.key));
+                    }
                 });
             });
         }
@@ -344,6 +369,21 @@
                 await remove(ref(db, "agents_interdits/" + nom));
             }
         }
+
+        // 🔹 Ajout de la fonction pour supprimer un agent
+        async function supprimerAgent(nom) {
+            if (confirm(`Voulez-vous vraiment supprimer l'agent "${nom}" ?`)) {
+                await remove(ref(db, "agents/" + nom));
+            }
+        }
+
+        // 🔹 Ajout de la fonction pour supprimer un agent interdit
+        async function supprimerInterdit(nom) {
+            if (confirm(`Voulez-vous vraiment supprimer l'agent interdit "${nom}" ?`)) {
+                await remove(ref(db, "agents_interdits/" + nom));
+            }
+        }
+
 
         // Exposer ces deux fonctions si tu veux les appeler depuis la console
         window.banirAgent = banirAgent;
